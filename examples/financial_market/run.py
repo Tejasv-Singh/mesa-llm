@@ -10,6 +10,10 @@ def run_simulation():
     print("-" * 85)
 
     # Run for 10 steps (simulated days)
+    if not model.running:
+        print("Simulation stopped: Model not running (likely missing API key).")
+        return
+
     for i in range(10):
         model.step()
 

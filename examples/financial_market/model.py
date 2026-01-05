@@ -1,93 +1,110 @@
+import os
 import random
 
 import mesa
+from openai import OpenAI
 
 
-class MockFinancialLLM:
+class FinancialLLM:
     """
-    Simulates an LLM for testing purposes.
-    In a real scenario, you would replace this with an API call to OpenAI/Anthropic.
+    A real connection to an LLM (OpenAI) to perform sentiment analysis.
     """
+
+    def __init__(self):
+        # This will look for the OPENAI_API_KEY environment variable
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError(
+                "OPENAI_API_KEY environment variable is missing. Please set it before running."
+            )
+
+        self.client = OpenAI(api_key=api_key)
 
     def get_decision(self, news_headline):
-        # 1. Simulating the 'Prompt' analysis
-        # We look for keywords to decide sentiment
-        headline_lower = news_headline.lower()
+        try:
+            prompt = (
+                f"You are a financial trading bot. Analyze this news headline: '{news_headline}'. "
+                f"Decide if you should BUY, SELL, or HOLD. "
+                f"Reply with exactly one word: BUY, SELL, or HOLD."
+            )
 
-        # 2. Simulating the 'Generation'
-        if any(
-            word in headline_lower
-            for word in ["profit", "record", "deal", "growth", "boom"]
-        ):
-            return "BUY"
-        elif any(
-            word in headline_lower
-            for word in ["crash", "loss", "inflation", "disaster", "crisis"]
-        ):
-            return "SELL"
-        else:
+            response = self.client.chat.completions.create(
+                model="gpt-3.5-turbo",  # Low cost model for examples
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a concise financial trading assistant.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.2,  # Low temperature for consistent answers
+                max_tokens=10,
+            )
+
+            decision = response.choices[0].message.content.strip().upper()
+
+            # Safety fallback if model outputs extra text
+            if "BUY" in decision:
+                return "BUY"
+            if "SELL" in decision:
+                return "SELL"
+            return "HOLD"
+
+        except Exception as e:
+            print(f"LLM Error: {e}")
             return "HOLD"
 
 
 class TraderAgent(mesa.Agent):
-    """
-    An agent that trades stocks based on news sentiment.
-    """
-
-    def __init__(self, unique_id, model):
+    def __init__(self, unique_id, model, llm_client):
         super().__init__(model)
         self.unique_id = unique_id
-        self.cash = 1000  # Initial Cash ($)
-        self.stocks = 10  # Initial Stock Count
-        self.wealth = self.calculate_wealth()
-        # Give every agent access to the "LLM"
-        self.llm = MockFinancialLLM()
+        self.cash = 1000
+        self.stocks = 10
+        self.llm = llm_client  # Shared LLM client to save memory
 
-    def calculate_wealth(self):
+    @property
+    def wealth(self):
         return self.cash + (self.stocks * self.model.current_price)
 
     def step(self):
-        # 1. PERCEIVE: Read the current news from the environment
         news = self.model.current_news
 
-        # 2. REASON: Ask the "LLM" what to do based on the news
-        # In a real app: response = self.llm.generate(f"Analyze this news: {news}")
+        # Real LLM Call
         decision = self.llm.get_decision(news)
 
-        # 3. ACT: Execute the trade
         price = self.model.current_price
-
         if decision == "BUY" and self.cash >= price:
             self.cash -= price
             self.stocks += 1
             self.model.buy_orders += 1
-
         elif decision == "SELL" and self.stocks > 0:
             self.cash += price
             self.stocks -= 1
             self.model.sell_orders += 1
 
-        # Update wealth for data collection
-        self.wealth = self.calculate_wealth()
-
 
 class FinancialMarket(mesa.Model):
-    """
-    The environment that holds the agents, the stock price, and the news feed.
-    """
-
     def __init__(self, n=5):
         super().__init__()
         self.num_agents = n
-        # self.schedule = mesa.time.RandomActivation(self) # Removed in Mesa 3.0
         self.current_price = 100.0
-
-        # Market tracking variables
         self.buy_orders = 0
         self.sell_orders = 0
         self.current_news = ""
 
-        # A simulated news feed
+        # Initialize one shared LLM client to prevent recreating it 5 times
+        try:
+            self.llm_client = FinancialLLM()
+        except ValueError as e:
+            print(f"Setup Error: {e}")
+            self.running = False
+            # Create a dummy client if real one fails, effectively stopping simulation logic but allowing init
+            # Or better, just let it fail so user knows key is missing?
+            # The prompt says "running = False" and return, so we rely on that.
+            self.llm_client = None
+            return
+
         self.news_feed = [
             "Tech sector reports record breaking profits!",
             "Uncertainty looms as inflation hits new highs.",
@@ -96,12 +113,9 @@ class FinancialMarket(mesa.Model):
             "Market remains stable with no major changes.",
         ]
 
-        # Create Agents
         for i in range(self.num_agents):
-            TraderAgent(i, self)
-            # self.schedule.add(agent) # Automatically registered in Mesa 3.0
+            TraderAgent(i, self, self.llm_client)
 
-        # Data Collector to track the simulation
         self.datacollector = mesa.DataCollector(
             model_reporters={
                 "Price": "current_price",
@@ -113,20 +127,16 @@ class FinancialMarket(mesa.Model):
         )
 
     def step(self):
-        # Reset daily counters
+        if not self.running or not self.llm_client:
+            return
+
         self.buy_orders = 0
         self.sell_orders = 0
-
-        # 1. Update Environment (New Day, New News)
         self.current_news = random.choice(self.news_feed)
 
-        # 2. Run Agents
+        # Shuffle_do is the efficient way to run steps in Mesa 3.0
         self.agents.shuffle_do("step")
 
-        # 3. Market Mechanics (Price Adjustment)
-        # Simple Logic: More buys = Price Up, More Sells = Price Down
         net_demand = self.buy_orders - self.sell_orders
         self.current_price = self.current_price * (1 + (net_demand * 0.01))
-
-        # Collect Data
         self.datacollector.collect(self)
