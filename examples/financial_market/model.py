@@ -2,7 +2,6 @@ import os
 import random
 
 import mesa
-from openai import OpenAI
 
 
 class FinancialLLM:
@@ -11,6 +10,16 @@ class FinancialLLM:
     """
 
     def __init__(self):
+        # Move the import HERE.
+        # Now it only tries to import 'openai' when someone actually runs the model,
+        # not when the CI server is just checking the file.
+        try:
+            from openai import OpenAI
+        except ImportError:
+            raise ImportError(
+                "The 'openai' library is not installed. Please run 'pip install openai'."
+            )
+
         # This will look for the OPENAI_API_KEY environment variable
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
