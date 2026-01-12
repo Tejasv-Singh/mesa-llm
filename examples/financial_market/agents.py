@@ -49,7 +49,7 @@ class TraderAgent(mesa.Agent):
         # We need to handle the response object correctly.
         # However, checking the ModuleLLM.generate in step 14:
         # It returns 'response'.
-        # Let's assume standard litellm response format for now and adjust if needed during validaton.
+        # Let's assume standard litellm response format for now and adjust if needed during validation.
         # Actually, let's verify if I should strip it here or if ModuleLLM does it.
         # ModuleLLM does NOT strip it.
 
