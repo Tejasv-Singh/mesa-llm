@@ -1,27 +1,31 @@
-# Financial Market Simulation (Real LLM)
+# Financial Market Simulation
 
-This example uses **OpenAI's GPT Models** to drive agent decision-making. Agents analyze simulated news headlines and decide to trade stocks based on the sentiment.
+A multi-agent simulation where **TraderAgents** utilize the **Mesa-LLM `ModuleLLM`** to analyze news sentiment and make trading decisions.
 
-## Setup
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+## Description
+This model demonstrates the integration of Large Language Models (LLMs) into standard Mesa agent lifecycles. 
+* **Agents:** Traders who hold Cash and Stock.
+* **Environment:** A dynamic market with a fluctuating stock price and a randomized news feed.
+* **Decision Making:** Each agent perceives the global news and uses `ModuleLLM` to act (BUY/SELL/HOLD).
 
-2. **Set your OpenAI API Key**: You must have an OpenAI API key. Set it as an environment variable:
+## Dependencies
+This example requires the following packages:
+* `mesa`
+* `openai`
+* `mesa-llm` (This package)
 
-   **Mac/Linux:**
+## Usage
+1. **Set API Key:**
    ```bash
    export OPENAI_API_KEY="sk-..."
    ```
 
-   **Windows (Powershell):**
-   ```powershell
-   $env:OPENAI_API_KEY="sk-..."
+2. **Run the Simulation:**
+   ```bash
+   python run.py
    ```
 
-## Running the Model
-
-```bash
-python run.py
-```
+## File Structure
+* **model.py:** Contains the FinancialMarket class and environment logic.
+* **agents.py:** Contains the TraderAgent class and LLM integration.
+* **run.py:** CLI entry point to execute the model and view results.
