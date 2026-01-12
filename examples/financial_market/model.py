@@ -1,6 +1,8 @@
-import mesa
 import random
+
+import mesa
 from agents import TraderAgent
+
 
 class FinancialMarket(mesa.Model):
     def __init__(self, n=5):
@@ -11,14 +13,14 @@ class FinancialMarket(mesa.Model):
         self.buy_orders = 0
         self.sell_orders = 0
         self.current_news = ""
-        
+
         # News Feed
         self.news_feed = [
             "Tech sector reports record breaking profits!",
             "Uncertainty looms as inflation hits new highs.",
             "Housing market crash predicted by experts.",
             "New trade deal promises economic growth.",
-            "Market remains stable with no major changes."
+            "Market remains stable with no major changes.",
         ]
 
         # Create Agents
@@ -32,21 +34,21 @@ class FinancialMarket(mesa.Model):
                 "Price": "current_price",
                 "News": "current_news",
                 "Buys": "buy_orders",
-                "Sells": "sell_orders"
+                "Sells": "sell_orders",
             },
-            agent_reporters={"Wealth": "wealth"}
+            agent_reporters={"Wealth": "wealth"},
         )
 
     def step(self):
         self.buy_orders = 0
         self.sell_orders = 0
         self.current_news = random.choice(self.news_feed)
-        
+
         # Mesa 3.0 scheduling
         self.agents.shuffle_do("step")
-        
+
         # Price Adjustment
         net_demand = self.buy_orders - self.sell_orders
         self.current_price = self.current_price * (1 + (net_demand * 0.01))
-        
+
         self.datacollector.collect(self)

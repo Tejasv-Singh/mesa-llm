@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 
 # Ensure current directory is in path for imports to work correctly when running as a script
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))

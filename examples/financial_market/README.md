@@ -3,7 +3,7 @@
 A multi-agent simulation where **TraderAgents** utilize the **Mesa-LLM `ModuleLLM`** to analyze news sentiment and make trading decisions.
 
 ## Description
-This model demonstrates the integration of Large Language Models (LLMs) into standard Mesa agent lifecycles. 
+This model demonstrates the integration of Large Language Models (LLMs) into standard Mesa agent lifecycles.
 * **Agents:** Traders who hold Cash and Stock.
 * **Environment:** A dynamic market with a fluctuating stock price and a randomized news feed.
 * **Decision Making:** Each agent perceives the global news and uses `ModuleLLM` to act (BUY/SELL/HOLD).
